@@ -91,42 +91,13 @@ const login = async (req, res) => {
     }
 
     const normalizedId = String(idNumber).toLowerCase().trim();
-    let user = await User.findOne({ idNumber: normalizedId });
-    let comparedHash = user ? String(user.password) : "";
-
-    // Legacy compatibility: old seed data exists in Student with hashed DOB instead of User.password.
+    const user = await User.findOne({ idNumber: normalizedId });
     if (!user) {
-      const legacyStudent = await Student.findOne({ idNumber: normalizedId });
-      if (!legacyStudent) {
-        console.log(`[LOGIN FAIL] user_not_found idNumber=${normalizedId}`);
-        return res.status(401).json({ message: "Invalid ID or Password" });
-      }
-
-      comparedHash = String(legacyStudent.dob);
-      const legacyMatch = await bcrypt.compare(String(password), comparedHash);
-      if (!legacyMatch) {
-        console.log(`[LOGIN FAIL] invalid_password_legacy idNumber=${normalizedId}`);
-        return res.status(401).json({ message: "Invalid ID or Password" });
-      }
-
-      user = await User.findOneAndUpdate(
-        { idNumber: normalizedId },
-        {
-          name: legacyStudent.name,
-          idNumber: legacyStudent.idNumber,
-          department: legacyStudent.department,
-          email: "",
-          mobile: "",
-          dob: legacyStudent.dob,
-          password: legacyStudent.dob
-        },
-        { new: true, upsert: true, setDefaultsOnInsert: true }
-      );
-
-      console.log(`[LOGIN MIGRATION] moved_legacy_student_to_user idNumber=${normalizedId}`);
+      console.log(`[LOGIN FAIL] user_not_found idNumber=${normalizedId}`);
+      return res.status(401).json({ message: "Invalid ID or Password" });
     }
 
-    const isMatch = await bcrypt.compare(String(password), comparedHash || String(user.password));
+    const isMatch = await bcrypt.compare(String(password), String(user.password));
     if (!isMatch) {
       console.log(`[LOGIN FAIL] invalid_password idNumber=${normalizedId}`);
       return res.status(401).json({ message: "Invalid ID or Password" });
