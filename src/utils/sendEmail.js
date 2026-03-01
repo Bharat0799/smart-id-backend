@@ -11,9 +11,14 @@ const createTransporter = () => {
   if (!user || !pass) return null;
 
   return nodemailer.createTransport({
-    service: "gmail",
-    auth: { user, pass }
-  });
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: false,
+  auth: {
+    user,
+    pass
+  }
+});
 };
 
 const sendEmail = async ({
